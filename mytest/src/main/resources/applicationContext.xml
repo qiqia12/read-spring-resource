@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	   xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans.xsd">
+<beans
+		xmlns="http://www.springframework.org/schema/beans"
+		xmlns:gjq="http://www.springframework.org/schema/user"
+	    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	    xsi:schemaLocation=
+				"http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+				http://www.springframework.org/schema/user http://www.springframework.org/schema/user.xsd"
+>
+
+	<gjq:user id = "gjq" username="lishi" age="13" email="2636680145@qq.com" password="root"></gjq:user>
 
 	<!-- 在这里加入内容 -->
 	<bean id="A" class="org.springframework.port.A">

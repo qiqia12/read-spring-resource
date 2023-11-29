@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+			targetNamespace="http://www.springframework.org/schema/user"
+			xmlns:tns="http://www.springframework.org/schema/user"
+			elementFormDefault="qualified"
+			>
+	<element name="user">
+		<complexType>
+			<attribute name="username" type = "string"/>
+			<attribute name="email" type = "string"/>
+			<attribute name="password" type = "string"/>
+			<attribute name="age" type = "int"/>
+			<attribute name="id" type = "string"/>
+		</complexType>
+	</element>
+
+
+
+</schema>
