@@ -1,2 +1,7 @@
 自定义一个<gjq:user username email age  password>标签
 完成整个标签的处理工具
+
+如果扩展实现自定义的属性编辑器
+1.自定义一个实现了PropertyEditorSupport接口的编辑器
+2.让spring能够识别到此编辑器,自定义实现一个属性编辑器的注册器,实现了PropertyEditorRegistrar接口
+3.让spring能够识别到对应的注册器

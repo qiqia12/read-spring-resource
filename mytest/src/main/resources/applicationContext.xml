@@ -15,4 +15,8 @@
 		<property name="id" value="11"/>
 		<property name="name" value="zhangssan"/>
 	</bean>
+	<bean id="custom" class="org.springframework.selfEditor.Customer">
+		<property name="id" value="123456"/>
+		<property name="address" value="河南省_开封市_通许县"/>
+	</bean>
 </beans>
