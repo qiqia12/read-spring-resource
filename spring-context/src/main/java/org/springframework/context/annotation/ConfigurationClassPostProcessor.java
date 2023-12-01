@@ -107,6 +107,15 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 
+
+/*
+ *此类是一个后置处理器的类,主要功能是参与BeanFactory的建造
+ * 1.解析加了@Configuration的配置类
+ * 2.解析@ComponentScan扫描的包
+ * 3.解析@ComponentScans扫描的包
+ * 4.解析@Import注解
+ *
+ */
 /**
  * {@link BeanFactoryPostProcessor} used for bootstrapping processing of
  * {@link Configuration @Configuration} classes.

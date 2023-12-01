@@ -102,10 +102,13 @@ final class PostProcessorRegistrationDelegate {
 			for (BeanFactoryPostProcessor postProcessor : beanFactoryPostProcessors) {
 				//如果是BeanDefinitionRegistryPostProcessor
 				if (postProcessor instanceof BeanDefinitionRegistryPostProcessor registryProcessor) {
+					//直接执行BeanDefinitionRegistryPostProcessor接口中的PostProcessorBeanDefinitionRegistry方法
 					registryProcessor.postProcessBeanDefinitionRegistry(registry);
+					//添加到registryProcessors,用于后续执行postProcessBeanFactory
 					registryProcessors.add(registryProcessor);
 				}
 				else {
+					//否则只是普通的BeanFactoryPostProcessor,添加到regularPostProcessors,用于后续执行postProcessBeanFactory方法
 					regularPostProcessors.add(postProcessor);
 				}
 			}
@@ -149,7 +152,7 @@ final class PostProcessorRegistrationDelegate {
 			postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
 			//遍历处理所有符合规则的postProcessorNames
 			for (String ppName : postProcessorNames) {
-				//检测是否实现了PriorityOrdered接口
+				//检测是否实现了Ordered接口
 				if (!processedBeans.contains(ppName) && beanFactory.isTypeMatch(ppName, Ordered.class)) {
 					//获取名字对应的bean实例,添加到currentRegistryProcessors中
 					currentRegistryProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor.class));
@@ -167,35 +170,53 @@ final class PostProcessorRegistrationDelegate {
 			currentRegistryProcessors.clear();
 
 			// Finally, invoke all other BeanDefinitionRegistryPostProcessors until no further ones appear.
+			//最后调用所有剩下的BeanDefinitionRegistryPostProcessors
 			boolean reiterate = true;
 			while (reiterate) {
 				reiterate = false;
+				//找出所有实现BeanDefinitionRegistryPostProcessor接口的类
 				postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
+				//遍历执行
 				for (String ppName : postProcessorNames) {
+					//跳过已经执行过的BeanDefinitionRegistryPostProcessors
 					if (!processedBeans.contains(ppName)) {
+						//获取名字对应的bean实例,添加到currentRegistryProcessors中
 						currentRegistryProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor.class));
+						//将要被执行的BFPP名称添加到processedBeans,避免重复执行
 						processedBeans.add(ppName);
 						reiterate = true;
 					}
 				}
+				//按照优先级排序
 				sortPostProcessors(currentRegistryProcessors, beanFactory);
+				//添加到registryProcessors中,用于最后执行postProcessBeanFactory方法
 				registryProcessors.addAll(currentRegistryProcessors);
+				//遍历currentRegistryProcessors,执行postProcessBeanDefinitionRegistry方法
 				invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry, beanFactory.getApplicationStartup());
+				//执行完毕之后 清空currentRegistryProcessors
 				currentRegistryProcessors.clear();
 			}
 
 			// Now, invoke the postProcessBeanFactory callback of all processors handled so far.
+
+			//调用所有BeanDefinitionRegistryPostProcessor的PostProcessBeanFactory方法
 			invokeBeanFactoryPostProcessors(registryProcessors, beanFactory);
+			//最后调用入参beanFactoryPostProcessors中普通的BeanFactoryPostProcessor的postProcessBeanFactory方法
 			invokeBeanFactoryPostProcessors(regularPostProcessors, beanFactory);
 		}
 
 		else {
 			// Invoke factory processors registered with the context instance.
+			//如果BeanFactory不归属于BeanDefinitionRegistry类型,那么直接执行postProcessBeanFactory
 			invokeBeanFactoryPostProcessors(beanFactoryPostProcessors, beanFactory);
 		}
 
+		//到这里为止,入参BeanFactoryPostProcessor和容器中所有的BeanDefinitionRegistryPostProcessor已经全部处理完毕
+		//下面开始处理所有的BeanFactoryPostProcessor
+
 		// Do not initialize FactoryBeans here: We need to leave all regular beans
 		// uninitialized to let the bean factory post-processors apply to them!
+		//找到所有实现BeanFactoryPostProcessor接口的类
 		String[] postProcessorNames =
 				beanFactory.getBeanNamesForType(BeanFactoryPostProcessor.class, true, false);
 
@@ -232,14 +253,19 @@ final class PostProcessorRegistrationDelegate {
 		invokeBeanFactoryPostProcessors(orderedPostProcessors, beanFactory);
 
 		// Finally, invoke all other BeanFactoryPostProcessors.
+		//遍历存放实现了普通BeanFactoryPostProcessor的集合
 		List<BeanFactoryPostProcessor> nonOrderedPostProcessors = new ArrayList<>(nonOrderedPostProcessorNames.size());
 		for (String postProcessorName : nonOrderedPostProcessorNames) {
+			//将普通的BeanFactoryPostProcessor添加到集合中
 			nonOrderedPostProcessors.add(beanFactory.getBean(postProcessorName, BeanFactoryPostProcessor.class));
 		}
+		//遍历普通的BeanFactoryPostProcessor,执行PostProcessBeanFactory
 		invokeBeanFactoryPostProcessors(nonOrderedPostProcessors, beanFactory);
 
 		// Clear cached merged bean definitions since the post-processors might have
 		// modified the original metadata, e.g. replacing placeholders in values...
+		//清除元数据缓存(mergeBeanDefinitions,allBeanNamesByType,singletonBeanNameByType)
+		//因为后置处理器可能已经修改了元数据 例如 替换值中的占位符
 		beanFactory.clearMetadataCache();
 	}
 
@@ -359,16 +385,21 @@ final class PostProcessorRegistrationDelegate {
 
 	private static void sortPostProcessors(List<?> postProcessors, ConfigurableListableBeanFactory beanFactory) {
 		// Nothing to sort?
+		//如果PostProcessors的个数小于等于1,那么不做任何事
 		if (postProcessors.size() <= 1) {
 			return;
 		}
 		Comparator<Object> comparatorToUse = null;
+		//判断是否是DefaultListableBeanFactory类型
 		if (beanFactory instanceof DefaultListableBeanFactory dlbf) {
+			//获取设置的比较器
 			comparatorToUse = dlbf.getDependencyComparator();
 		}
 		if (comparatorToUse == null) {
+			//如果没有设置比较器,则使用默认的OrderComparator
 			comparatorToUse = OrderComparator.INSTANCE;
 		}
+		//使用比较器对postProcessors进行排序
 		postProcessors.sort(comparatorToUse);
 	}
 
