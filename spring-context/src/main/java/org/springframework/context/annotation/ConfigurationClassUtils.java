@@ -110,13 +110,18 @@ public abstract class ConfigurationClassUtils {
 		if (className == null || beanDef.getFactoryMethodName() != null) {
 			return false;
 		}
-
+		//获取当前BeanDefinition的元数据对象
 		AnnotationMetadata metadata;
+		//通过;注解注入的BeanDefinition都是AnnotatedGenericBeanDefinition,实现了AnnotatedBeanDefinition
+		//spring内部的BeanDefinition都是RootBeanDefinition,实现了AbstractBeanDefinition
+		//此处用来判断是否归属于AnnotatedBeanDefinition
 		if (beanDef instanceof AnnotatedBeanDefinition annotatedBd &&
 				className.equals(annotatedBd.getMetadata().getClassName())) {
 			// Can reuse the pre-parsed metadata from the given BeanDefinition...
+			//从当前bean的定义信息中获取元数据信息
 			metadata = annotatedBd.getMetadata();
 		}
+		//判断是否是spring中默认的BeanDefinition
 		else if (beanDef instanceof AbstractBeanDefinition abstractBd && abstractBd.hasBeanClass()) {
 			// Check already loaded Class if present...
 			// since we possibly can't even load the class file for this Class.
@@ -142,13 +147,15 @@ public abstract class ConfigurationClassUtils {
 				return false;
 			}
 		}
-
+		//判断当前BeanDefinition是否存在@Configuration注解 如果存在
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
+			//如果包含@Configuration注解,同时包含ProxyBeanMethods属性,那么设置configurationClass属性为full
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
 		else if (config != null || Boolean.TRUE.equals(beanDef.getAttribute(CANDIDATE_ATTRIBUTE)) ||
 				isConfigurationCandidate(metadata)) {
+			//如果包含@Bean @Component @ComponentScan @Import @ImportSource注解 设置为 lite
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
 		}
 		else {
@@ -156,8 +163,10 @@ public abstract class ConfigurationClassUtils {
 		}
 
 		// It's a full or lite configuration candidate... Let's determine the order value, if any.
+		//获取具体的执行顺序
 		Integer order = getOrder(metadata);
 		if (order != null) {
+			//如果值不为空,那么直接设置值到具体的BeanDefinition
 			beanDef.setAttribute(ORDER_ATTRIBUTE, order);
 		}
 
