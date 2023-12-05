@@ -67,16 +67,25 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
 		// Don't override the class with CGLIB if no overrides.
+		//bd对象定义中,是否包含MethodOverride列表,spring中两个标签参数会产生MethodOverdes,分别是lookup-method,replace-method
+		//没有MethodOverrides对象,可以直接实例化
 		if (!bd.hasMethodOverrides()) {
+			//实例化对象的构造方法
 			Constructor<?> constructorToUse;
+			//锁定对象
 			synchronized (bd.constructorArgumentLock) {
+				//查看bd对象是否含有构造方法
 				constructorToUse = (Constructor<?>) bd.resolvedConstructorOrFactoryMethod;
+				//如果没有
 				if (constructorToUse == null) {
+					//从BD中获取beanClass
 					final Class<?> clazz = bd.getBeanClass();
+					//如果实例化的beanDefinition是一个接口,则直接抛出异常
 					if (clazz.isInterface()) {
 						throw new BeanInstantiationException(clazz, "Specified class is an interface");
 					}
 					try {
+						//获取系统安全管理器
 						constructorToUse = clazz.getDeclaredConstructor();
 						bd.resolvedConstructorOrFactoryMethod = constructorToUse;
 					}

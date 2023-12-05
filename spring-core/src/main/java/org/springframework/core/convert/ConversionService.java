@@ -65,6 +65,8 @@ public interface ConversionService {
 	boolean canConvert(@Nullable TypeDescriptor sourceType, TypeDescriptor targetType);
 
 	/**
+	 * 类型转换,获取合适的转换器进行类型的转换,默认是DefaultConversionService,也可以是自定义的
+	 *
 	 * Convert the given {@code source} to the specified {@code targetType}.
 	 * @param source the source object to convert (may be {@code null})
 	 * @param targetType the target type to convert to (required)

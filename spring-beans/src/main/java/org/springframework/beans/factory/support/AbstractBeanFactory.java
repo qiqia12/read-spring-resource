@@ -256,12 +256,14 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					logger.trace("Returning cached instance of singleton bean '" + beanName + "'");
 				}
 			}
+			//返回对象的实例,当实现了FactoryBean接口的对象,需要获取具体的对象的时候就需要此方法来进行获取了
 			beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
 		else {
 			// Fail if we're already creating this bean instance:
 			// We're assumably within a circular reference.
+			//当对象都是单例的时候会尝试解决循环依赖的问题,但是原型模式下如果存在循环依赖的情况,那么直接抛出异常
 			if (isPrototypeCurrentlyInCreation(beanName)) {
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
@@ -287,7 +289,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					return (T) parentBeanFactory.getBean(nameToLookup);
 				}
 			}
-
+			//如果不是做类型检查,那么表示要创建Bean,此处在集合中做一个记录
 			if (!typeCheckOnly) {
 				markBeanAsCreated(beanName);
 			}
@@ -298,6 +300,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				if (requiredType != null) {
 					beanCreation.tag("beanType", requiredType::toString);
 				}
+				//此处做了BeanDefinition对象的转换,当我们从xml文件中加载beanDefinition对象的时候,封装的对象是GenericBeanDefinition
+				//此处要做类型转换,如果是子类bean的话,会合并父类的相关属性
 				RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
 				checkMergedBeanDefinition(mbd, beanName, args);
 
@@ -1317,10 +1321,13 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 */
 	protected RootBeanDefinition getMergedLocalBeanDefinition(String beanName) throws BeansException {
 		// Quick check on the concurrent map first, with minimal locking.
+		//检查beanName对应的mergedBeanDefinitions是否存在于缓存中,此缓存是在beanFactoryPostProcessor中添加的
 		RootBeanDefinition mbd = this.mergedBeanDefinitions.get(beanName);
 		if (mbd != null && !mbd.stale) {
+			//如果存在于缓存中直接返回
 			return mbd;
 		}
+		//如果不存在缓存中,根据beanName和BeanDefinition,获取mergedBeanDefinitions
 		return getMergedBeanDefinition(beanName, getBeanDefinition(beanName));
 	}
 
@@ -1505,9 +1512,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			throws CannotLoadBeanClassException {
 
 		try {
+			//判断mbd的定义信息中是否包含beanClass,并且是Class类型的,如果是直接返回,否则进行详细的解析
 			if (mbd.hasBeanClass()) {
 				return mbd.getBeanClass();
 			}
+			//进行详细的处理解析过程
 			return doResolveBeanClass(mbd, typesToMatch);
 		}
 		catch (ClassNotFoundException ex) {
@@ -1522,10 +1531,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	private Class<?> doResolveBeanClass(RootBeanDefinition mbd, Class<?>... typesToMatch)
 			throws ClassNotFoundException {
 
+		//获取类加载器
 		ClassLoader beanClassLoader = getBeanClassLoader();
 		ClassLoader dynamicLoader = beanClassLoader;
 		boolean freshResolve = false;
-
+		//判断typesToMatch是否为空,如果不为空,那么使用临时加载器进行加载
 		if (!ObjectUtils.isEmpty(typesToMatch)) {
 			// When just doing type checks (i.e. not creating an actual instance yet),
 			// use the specified temporary class loader (e.g. in a weaving scenario).
@@ -1540,15 +1550,19 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 			}
 		}
-
+		//获取bean的className
 		String className = mbd.getBeanClassName();
 		if (className != null) {
+			//获取BeanDefinition中对应的className
 			Object evaluated = evaluateBeanDefinitionString(className, mbd);
+			//判断className是否等于计算出的表达式的结果,如果不等于,那么判断evaluate的的类型
 			if (!className.equals(evaluated)) {
 				// A dynamically resolved expression, supported as of 4.2...
+				//如果是class的类型直接返回
 				if (evaluated instanceof Class<?> clazz) {
 					return clazz;
 				}
+				//如果是String类型,则设置freshResolve为true,并使用动态加载器进行加载
 				else if (evaluated instanceof String name) {
 					className = name;
 					freshResolve = true;
@@ -1575,6 +1589,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		}
 
 		// Resolve regularly, caching the result in the BeanDefinition...
+		//定期检查  缓存BeanDefinition的结果
 		return mbd.resolveBeanClass(beanClassLoader);
 	}
 
@@ -1711,6 +1726,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				if (!isBeanEligibleForMetadataCaching(beanName)) {
 					// Let the bean definition get re-merged now that we're actually creating
 					// the bean... just in case some of its metadata changed in the meantime.
+					//当我们需要实际创建bean的时候,需要对当前bean来进行重新合并,以防止一些元数据被修改
 					clearMergedBeanDefinition(beanName);
 				}
 				this.alreadyCreated.add(beanName);

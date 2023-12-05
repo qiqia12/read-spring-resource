@@ -182,20 +182,29 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 		// Quick check for existing instance without full singleton lock
+		//查看一级缓存中是否存在,若存在 直接返回
 		Object singletonObject = this.singletonObjects.get(beanName);
+		//如果单例对象缓存中没有,并且该beanName对应的单例Bean正在创建中
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
+			//从二级缓存中获取单例对象
 			singletonObject = this.earlySingletonObjects.get(beanName);
+			//如果二级缓存中也没有,并且允许三级缓存创建早期单例对象引用
 			if (singletonObject == null && allowEarlyReference) {
+				//如果为空 加锁并进行处理
 				synchronized (this.singletonObjects) {
 					// Consistent creation of early reference within full singleton lock
 					singletonObject = this.singletonObjects.get(beanName);
 					if (singletonObject == null) {
 						singletonObject = this.earlySingletonObjects.get(beanName);
 						if (singletonObject == null) {
+							//当某些方法需要提前初始化的时候则会调用addSingletonFactory方法对应的ObjectFactory初始化策略存储在singletonFactories
 							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 							if (singletonFactory != null) {
+								//如果存在单例工厂,则通过工厂创建一个单例对象
 								singletonObject = singletonFactory.getObject();
+								//记录在缓存中,二级缓存和三级缓存的对象不能同时存在
 								this.earlySingletonObjects.put(beanName, singletonObject);
+								//从三级缓存中移除
 								this.singletonFactories.remove(beanName);
 							}
 						}
@@ -217,6 +226,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(beanName, "Bean name must not be null");
 		synchronized (this.singletonObjects) {
+			//首先检查一级缓存中是否存在对应的bean
 			Object singletonObject = this.singletonObjects.get(beanName);
 			if (singletonObject == null) {
 				if (this.singletonsCurrentlyInDestruction) {
@@ -235,6 +245,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
+					//开始进行bean对象的创建 通过执行一级缓存中传入的 第二个参数lamda表达式
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}
