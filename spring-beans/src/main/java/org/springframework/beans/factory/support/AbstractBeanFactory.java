@@ -196,6 +196,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 	@Override
 	public Object getBean(String name) throws BeansException {
+		//此方法是实际获取Bean的方法 也是触发依赖注入的方法
 		return doGetBean(name, null, null, false);
 	}
 
@@ -1266,6 +1267,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 */
 	protected void initBeanWrapper(BeanWrapper bw) {
 		bw.setConversionService(getConversionService());
+		//加入自定义的编辑器
 		registerCustomEditors(bw);
 	}
 
