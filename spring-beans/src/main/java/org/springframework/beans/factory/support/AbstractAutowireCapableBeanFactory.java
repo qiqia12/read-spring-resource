@@ -598,7 +598,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Eagerly cache singletons to be able to resolve circular references
 		// even when triggered by lifecycle interfaces like BeanFactoryAware.
-		/**
+		/*
 		 *解决循环依赖
 		 */
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
@@ -608,16 +608,20 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				logger.trace("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
+			//为避免后期循环依赖,可以在Bean初始化完成前将创建实例的ObjectFactory加入工厂
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
+			//只保留二级缓存,不向三级缓存中存放对象
+			//earlySingLetonObjects.put(beanName,bean);
+			//registeredSingLentons.add(beanName);
 		}
 
 		// Initialize the bean instance.
 		Object exposedObject = bean;
 		try {
 
-			//填充属性
+			//对Bean的属性进行填充,将各个属性注入,其中,可能存在依赖于其他Bean的属性,则会递归初始化依赖的bean
 			populateBean(beanName, mbd, instanceWrapper);
-			//处理 aware 方法
+			//执行初始化逻辑
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {
@@ -1414,13 +1418,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @param bw the BeanWrapper with bean instance
 	 */
 	protected void populateBean(String beanName, RootBeanDefinition mbd, @Nullable BeanWrapper bw) {
+		//如果beanWrapper为空
 		if (bw == null) {
+			//如果mbd有需要设置的属性
 			if (mbd.hasPropertyValues()) {
+				//抛出bean创建异常
 				throw new BeanCreationException(
 						mbd.getResourceDescription(), beanName, "Cannot apply property values to null instance");
 			}
 			else {
 				// Skip property population phase for null instance.
+				//没有课填充的属性  直接跳过
 				return;
 			}
 		}
@@ -1439,29 +1447,44 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Give any InstantiationAwareBeanPostProcessors the opportunity to modify the
 		// state of the bean before properties are set. This can be used, for example,
 		// to support styles of field injection.
+
+		//给任何实现了InstantiationAwareBeanPostProcessor的子类机会去修改bean的状态在设置属性之前,可以用来支持类型的字段注入
+		//否是 "synthetic",一般是指只有AOP相关的prointCut配置或者Adivce配置才会将synthetic设置为true
+		//如果mdb是不是 syntheic且工厂具有InstiationAwareBeanPostProcessor
 		if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
+			//遍历工厂中的BeanPostProcessor对象
 			for (InstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().instantiationAware) {
+				//PostProcessorAfterInstantiation:一般用于设置属性
 				if (!bp.postProcessAfterInstantiation(bw.getWrappedInstance(), beanName)) {
 					return;
 				}
 			}
 		}
 
+		//PropertyValues: 包含一个或多个PropertyValue对象的容器,通常包括针对特定目标Bean的一次更新
+		//如果mdb有PropertyValues就获取其PropertyValues
 		PropertyValues pvs = (mbd.hasPropertyValues() ? mbd.getPropertyValues() : null);
 
+		//获取mdb的自动装配模式
 		int resolvedAutowireMode = mbd.getResolvedAutowireMode();
+		//如果自动装配模式为按名称自动装配bean属性 或者 按类型自动装配bean属性
 		if (resolvedAutowireMode == AUTOWIRE_BY_NAME || resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
 			MutablePropertyValues newPvs = new MutablePropertyValues(pvs);
 			// Add property values based on autowire by name if applicable.
+			//根据名称添加属性值
 			if (resolvedAutowireMode == AUTOWIRE_BY_NAME) {
 				autowireByName(beanName, mbd, bw, newPvs);
 			}
 			// Add property values based on autowire by type if applicable.
+			//根据类型添加属性值
 			if (resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
+				//通过bw的PropertyDescriptor属性类型,查找出对应的Bean对象,将其添加到newPvs中
 				autowireByType(beanName, mbd, bw, newPvs);
 			}
+			//让Pvs重新引用newPvs,newPvs此时已经包含了PVS的属性值以及通过AUTOWIRE_BY_NAME,AUTOWRID_BY_TYPE自动装配所得到的属性值
 			pvs = newPvs;
 		}
+		//工厂是否拥有InstiationAwareBeanPostProcessor
 		if (hasInstantiationAwareBeanPostProcessors()) {
 			if (pvs == null) {
 				pvs = mbd.getPropertyValues();
@@ -1536,8 +1559,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		if (converter == null) {
 			converter = bw;
 		}
-
+		//获取bw中有setter方法&& 非简单类型属性,&& mbd的PropertyValues中没有该pd的属性名的PropertyDescriptor属性名组
 		String[] propertyNames = unsatisfiedNonSimpleProperties(mbd, bw);
+		//遍历属性名
 		Set<String> autowiredBeanNames = new LinkedHashSet<>(propertyNames.length * 2);
 		for (String propertyName : propertyNames) {
 			try {

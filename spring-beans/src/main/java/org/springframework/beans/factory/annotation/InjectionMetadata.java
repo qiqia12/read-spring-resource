@@ -128,6 +128,7 @@ public class InjectionMetadata {
 			for (InjectedElement element : this.injectedElements) {
 				Member member = element.getMember();
 				if (!beanDefinition.isExternallyManagedConfigMember(member)) {
+					//注册初始化调用
 					beanDefinition.registerExternallyManagedConfigMember(member);
 					checkedElements.add(element);
 				}
