@@ -455,7 +455,9 @@ public class BeanDefinitionValueResolver {
 	 * For each element in the managed list, resolve reference if necessary.
 	 */
 	private List<?> resolveManagedList(Object argName, List<?> ml) {
+		//定义一个用于存放解析后的实例对象的ArrayList,初始容量为ml大小
 		List<Object> resolved = new ArrayList<>(ml.size());
+		//遍历ml
 		for (int i = 0; i < ml.size(); i++) {
 			resolved.add(resolveValueIfNecessary(new KeyedArgName(argName, i), ml.get(i)));
 		}

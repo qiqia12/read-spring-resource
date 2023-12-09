@@ -1489,6 +1489,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (pvs == null) {
 				pvs = mbd.getPropertyValues();
 			}
+			//遍历工厂内所有后置处理器
 			for (InstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().instantiationAware) {
 				PropertyValues pvsToUse = bp.postProcessProperties(pvs, bw.getWrappedInstance(), beanName);
 				if (pvsToUse == null) {
@@ -1504,7 +1505,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			checkDependencies(beanName, mbd, filteredPds, pvs);
 		}
 
+		//如果PVS不为null
 		if (pvs != null) {
+			//应用给定的属性值,解决任何在这个bean工厂运行时其他bean的引用,必须使用深拷贝,所以我们不会永久的修改这个属性
 			applyPropertyValues(beanName, mbd, bw, pvs);
 		}
 	}
@@ -1741,15 +1744,23 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		BeanDefinitionValueResolver valueResolver = new BeanDefinitionValueResolver(this, beanName, mbd, converter);
 
 		// Create a deep copy, resolving any references for values.
+		//创建一个深拷贝,解析任何值引用
 		List<PropertyValue> deepCopy = new ArrayList<>(original.size());
+		//是否还需要解析标记
 		boolean resolveNecessary = false;
+		//遍历属性,将属性转换为对应类的对应属性的类型
 		for (PropertyValue pv : original) {
+			//如果该属性已经解析过
 			if (pv.isConverted()) {
 				deepCopy.add(pv);
 			}
+			//如果该属性没有解析过
 			else {
+				//属性名字
 				String propertyName = pv.getName();
+				//获取未经类型转换的值
 				Object originalValue = pv.getValue();
+				//自动生成标记的规范实例
 				if (originalValue == AutowiredPropertyMarker.INSTANCE) {
 					Method writeMethod = bw.getPropertyDescriptor(propertyName).getWriteMethod();
 					if (writeMethod == null) {
@@ -1757,7 +1768,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					}
 					originalValue = new DependencyDescriptor(new MethodParameter(writeMethod, 0), true);
 				}
+				//交由valueResolver根据PV解析出originalValue所封装的对象
 				Object resolvedValue = valueResolver.resolveValueIfNecessary(pv, originalValue);
+				//默认装换后的值是刚解析出来的值
 				Object convertedValue = resolvedValue;
 				boolean convertible = bw.isWritableProperty(propertyName) &&
 						!PropertyAccessorUtils.isNestedOrIndexedProperty(propertyName);
@@ -1789,6 +1802,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Set our (possibly massaged) deep copy.
+		//上面只是把解析到的属性放进了deepCopy中,这个方法给bean的各个属性赋值
 		try {
 			bw.setPropertyValues(new MutablePropertyValues(deepCopy));
 		}
